@@ -78,8 +78,9 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
+
 # MODEL_PATH = "saved_models/1/potatoes.h5"
-MODEL = tf.keras.models.load_model("../saved_models/1")
+MODEL_PATH = "../saved_models/pea_model.h5"
 
 # Load the model WITHOUT compiling to avoid legacy loss config errors
 MODEL = tf.keras.models.load_model(MODEL_PATH, compile=False)
@@ -91,7 +92,7 @@ MODEL.compile(
     metrics=['accuracy']
 )
 
-CLASS_NAMES = ['DOWNY_MILDEW_LEAF', 'FRESH_LEAF', 'LEAFMINNER_LEAF', 'POWDER_MILDEW_LEAF']
+CLASS_NAMES = ["Early Blight", "Late Blight", "Healthy"]
 
 @app.get("/ping")
 async def ping():
