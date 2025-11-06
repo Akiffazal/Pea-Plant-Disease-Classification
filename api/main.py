@@ -78,7 +78,8 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-MODEL_PATH = "saved_models/1/potatoes.h5"
+# MODEL_PATH = "saved_models/1/potatoes.h5"
+MODEL = tf.keras.models.load_model("../saved_models/1")
 
 # Load the model WITHOUT compiling to avoid legacy loss config errors
 MODEL = tf.keras.models.load_model(MODEL_PATH, compile=False)
