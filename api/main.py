@@ -79,21 +79,15 @@ app.add_middleware(
     allow_headers=["*"]
 )
 
+# MODEL = tf.keras.models.load_model("E:/Pea_Plant_disease/saved_models/pea_model.h5")
+# MODEL = tf.keras.models.load_model("E:/Pea_Plant_disease/saved_models/2")
+# MODEL = tf.saved_model.load("E:/Pea_Plant_disease/saved_models/2")
 
-# Load your trained model
-MODEL_PATH = r"C:\Users\lenovo\Desktop\Pea-Plant-Disease-Classification\saved_models\pea_model.h5"
-MODEL = tf.keras.models.load_model(MODEL_PATH, compile=False)
-
-# Compile the model manually to avoid legacy issues
-MODEL.compile(
-    optimizer=tf.keras.optimizers.Adam(),
-    loss=tf.keras.losses.CategoricalCrossentropy(from_logits=False),
-    metrics=['accuracy']
-)
+MODEL = tf.saved_model.load("E:/Pea_Plant_disease/saved_models/2")
+infer = MODEL.signatures["serving_default"]
 
 CLASS_NAMES = ['DOWNY_MILDEW_LEAF', 'FRESH_LEAF', 'LEAFMINNER_LEAF', 'POWDER_MILDEW_LEAF']
 
-    
 
 @app.get("/ping")
 async def ping():
@@ -109,32 +103,42 @@ def read_file_as_image(data: bytes) -> np.ndarray:
     image_array = np.array(image) / 255.0  # Normalize pixel values
     return image_array
 
-@app.post("/predict")
-async def predict(
-    file: UploadFile = File(...)
-):
-    image = read_file_as_image(await file.read())
-    img_batch = np.expand_dims(image, 0)
+# @app.post("/predict")
+# async def predict(
+#     file: UploadFile = File(...)
+# ):
+#     image = read_file_as_image(await file.read())
+#     img_batch = np.expand_dims(image, 0)
     
-    img_batch = np.expand_dims(image, axis=0)  # Add batch dimension
+#     predictions = MODEL.predict(img_batch)
 
-    predictions = MODEL.predict(img_batch)
-    predicted_index = int(np.argmax(predictions[0]))
-    predicted_class = CLASS_NAMES[predicted_index]
-    confidence = float(np.max(predictions[0]))
+#     predicted_class = CLASS_NAMES[np.argmax(predictions[0])]
+#     confidence = np.max(predictions[0])
+#     return {
+#         'class': predicted_class,
+#         'confidence': float(confidence)
+#     }
 
+
+@app.post("/predict")
+async def predict(file: UploadFile = File(...)):
+    image = read_file_as_image(await file.read())
+    img_batch = np.expand_dims(image, 0).astype(np.float32)
+
+    # Convert numpy to tensor and call the model
+    input_tensor = tf.convert_to_tensor(img_batch)
+    output = infer(input_tensor)
+
+    # Extract predictions (depends on export signature)
+    predictions = list(output.values())[0].numpy()
     predicted_class = CLASS_NAMES[np.argmax(predictions[0])]
     confidence = np.max(predictions[0])
     return {
         'class': predicted_class,
         'confidence': float(confidence)
-        "class": predicted_class,
-        "confidence": round(confidence, 4)
     }
 
+
+
 if __name__ == "__main__":
-    uvicorn.run(app, host='localhost', port=8000)
-
-
-
-    uvicorn.run(app, host="127.0.0.1", port=8000)
+    uvicorn.run(app, host='localhost', port=8001)
