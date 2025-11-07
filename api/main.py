@@ -20,7 +20,12 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-MODEL = tf.keras.models.load_model("../saved_models/pea_model.h5")
+# MODEL = tf.keras.models.load_model(".E:\Pea_Plant_disease\saved_models/pea_model.h5")
+# MODEL = tf.keras.models.load_model("E:\Pea_Plant_disease\saved_models/2")
+
+MODEL = tf.saved_model.load("E:/Pea_Plant_disease/saved_models/2")
+infer = MODEL.signatures["serving_default"]
+
 
 CLASS_NAMES = ['DOWNY_MILDEW_LEAF', 'FRESH_LEAF', 'LEAFMINNER_LEAF', 'POWDER_MILDEW_LEAF']
 
@@ -32,15 +37,33 @@ def read_file_as_image(data) -> np.ndarray:
     image = np.array(Image.open(BytesIO(data)))
     return image
 
-@app.post("/predict")
-async def predict(
-    file: UploadFile = File(...)
-):
-    image = read_file_as_image(await file.read())
-    img_batch = np.expand_dims(image, 0)
+# @app.post("/predict")
+# async def predict(
+#     file: UploadFile = File(...)
+# ):
+#     image = read_file_as_image(await file.read())
+#     img_batch = np.expand_dims(image, 0)
     
-    predictions = MODEL.predict(img_batch)
+#     predictions = MODEL.predict(img_batch)
 
+#     predicted_class = CLASS_NAMES[np.argmax(predictions[0])]
+#     confidence = np.max(predictions[0])
+#     return {
+#         'class': predicted_class,
+#         'confidence': float(confidence)
+#     }
+
+@app.post("/predict")
+async def predict(file: UploadFile = File(...)):
+    image = read_file_as_image(await file.read())
+    img_batch = np.expand_dims(image, 0).astype(np.float32)
+
+    # Convert numpy to tensor and call the model
+    input_tensor = tf.convert_to_tensor(img_batch)
+    output = infer(input_tensor)
+
+    # Extract predictions (depends on export signature)
+    predictions = list(output.values())[0].numpy()
     predicted_class = CLASS_NAMES[np.argmax(predictions[0])]
     confidence = np.max(predictions[0])
     return {
@@ -48,7 +71,8 @@ async def predict(
         'confidence': float(confidence)
     }
 
-if __name__ == "__main__":
-    uvicorn.run(app, host='localhost', port=8000)
 
+
+if __name__ == "__main__":
+    uvicorn.run(app, host='localhost', port=8001)
 
