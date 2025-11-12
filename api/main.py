@@ -71,9 +71,6 @@ if __name__ == "__main__":
 
 
 
-
-
-
 # from fastapi import FastAPI, File, UploadFile, HTTPException
 # from fastapi.middleware.cors import CORSMiddleware
 # import uvicorn
